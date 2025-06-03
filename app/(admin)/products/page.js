@@ -1,7 +1,8 @@
+import AllProductsTable from "@/components/productsPage/allProductsTable";
 import React from "react";
 
 function ProductPage() {
-  return <div>ProductPage</div>;
+  return <AllProductsTable />;
 }
 
 export default ProductPage;

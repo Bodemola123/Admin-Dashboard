@@ -32,5 +32,20 @@ module.exports = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+    plugins: [
+    require("tailwindcss-animate"), // Keep the animate plugin
+    function ({ addUtilities }) {
+      addUtilities(
+        {
+          '.scrollbar-hide': {
+            'scrollbar-width': 'none', /* Hide scrollbar for Firefox */
+          },
+          '.scrollbar-hide::-webkit-scrollbar': {
+            'display': 'none', /* Hide scrollbar for WebKit browsers */
+          },
+        },
+        ['responsive', 'hover'] // This ensures the utility works with all responsive variants
+      );
+    },
+  ],
 };

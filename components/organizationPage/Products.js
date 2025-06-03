@@ -47,7 +47,6 @@ import axios from "axios";
 import { FaAngleLeft, FaAngleRight, FaChevronLeft } from "react-icons/fa";
 import Link from "next/link";
 
-const getRandomStatus = () => (Math.random() < 0.5 ? "active" : "inactive");
 
 function getTruncatedPageNumbers(current, total) {
   const delta = 1;
@@ -70,8 +69,8 @@ function getTruncatedPageNumbers(current, total) {
 }
 
 
-const slugify = (str) =>
-  str?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+// const slugify = (str) =>
+//   str?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 export const columns = [
   // {
   //   id: "select",
@@ -97,73 +96,69 @@ export const columns = [
   //   enableSorting: false,
   //   enableHiding: false,
   // },
-  {
-    accessorKey: "organization",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-2 hover:text-btnlime"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Organizations
-        <ArrowUpDown className="h-4 w-4" />
-      </button>
-    ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-start gap-2 text-btnlime text-center text-sm font-medium">
-        <Image
-        // src={row.original.image || "/people.svg"}
-          src= "/people.svg"
-          alt="logo"
-          width={40}
-          height={40}
-          className="object-cover"
-        />
-        <div className="text-left">
-          <h3 className="text-[#2D2D2D] text-sm font-semibold product-sans capitalize">
-            {row.getValue("organization")}
-          </h3>
-          <span className="text-dovegray text-sm font-normal">
-            {row.original.email}
-          </span>
-        </div>
+{
+  accessorKey: "productname", // Add this key
+  id: "productname", // Optional, used for filter/sort display
+  header: ({ column }) => (
+    <button
+      className="flex items-center gap-2 hover:text-btnlime"
+      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+    >
+      Product Name
+      <ArrowUpDown className="h-4 w-4" />
+    </button>
+  ),
+  cell: ({ row }) => (
+    <div className="flex items-center justify-start gap-2 text-btnlime text-center text-sm font-medium">
+      <Image
+        src={row.original.image}
+        alt="logo"
+        width={40}
+        height={40}
+        className="object-cover"
+      />
+      <div className="text-left">
+        <h3 className="text-[#2D2D2D] text-sm font-semibold product-sans capitalize">
+          {row.getValue("productname")}
+        </h3>
+        <span className="text-dovegray text-sm font-normal">
+          ID: {row.original.id}
+        </span>
       </div>
-    ),
-  },
+    </div>
+  ),
+},
+
+
   {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <div className="flex items-center justify-start">
-        <div
-          className={`capitalize py-[2px] px-2 rounded-2xl ${
-            row.getValue("status") === "active" && "text-[#027A48] bg-[#ECFDF3]"
-          } ${
-            row.getValue("status") === "inactive" && "text-[#344054] bg-[#F2F4F7]"
-          }`}
-        >
-          {row.getValue("status")}
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "industry",
-    header: "Industry",
+    accessorKey: "category",
+    header: "Category",
     cell: ({ row }) => (
       <div className="flex items-center justify-start">
-        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#430099] bg-[#F2F4F7]">
-          {row.getValue("industry")}
+        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#032400] bg-[#ECFDF3]">
+          {row.getValue("category")}
         </div>
       </div>
     ),
   },
   {
-    accessorKey: "plan",
-    header: "Plan",
+    accessorKey: "pricing",
+    header: "Pricing",
     cell: ({ row }) => (
       <div className="flex items-center justify-start">
         <div className="capitalize py-[2px] px-2 rounded-2xl text-[#027A48] bg-[#ECFDF3]">
-          {row.getValue("plan")}
+          {row.getValue("pricing")}
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "approved",
+    header: "Approved Date",
+    cell: ({ row }) => (
+      <div className="flex items-center justify-start">
+        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#032400] bg-[#ECFDF3]">
+          {row.getValue("approved")}
         </div>
       </div>
     ),
@@ -173,7 +168,7 @@ export const columns = [
   enableHiding: false,
   cell: ({ row }) => {
     const org = row.original; // Full row object with all fields
-    const slug = `${org.id}-${slugify(org.email)}`; // or organization_email
+    // const slug = `${org.id}-${slugify(org.email)}`; // or organization_email
 
     return (
       <DropdownMenu>
@@ -186,10 +181,8 @@ export const columns = [
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <Link href={`/orgDetails/${slug}`}>
-            <DropdownMenuItem>View info</DropdownMenuItem>
-          </Link>
-          {/* <DropdownMenuItem>Select account</DropdownMenuItem> */}
+            <DropdownMenuItem>View Product info</DropdownMenuItem>
+          <DropdownMenuItem>Give Admin rating</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -197,7 +190,9 @@ export const columns = [
 },
 ];
 
-function AllOrganizaztionTable() {
+function Products({orgData}) {
+  const orgId = orgData?.id 
+  console.log("orgId is", orgId)
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -208,50 +203,53 @@ function AllOrganizaztionTable() {
   const [rowSelection, setRowSelection] = useState({});
 
 useEffect(() => {
+  if (!orgId) return; // <-- Skip if orgId is undefined
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Check if data is already in sessionStorage
-      const cachedData = sessionStorage.getItem("orgData");
+      const cachedData = sessionStorage.getItem("productData");
       if (cachedData) {
         setData(JSON.parse(cachedData));
         setLoading(false);
         return;
       }
 
-      // Otherwise, fetch from API
-      const res = await axios.get(
-        "https://p2xeehk5x9.execute-api.ap-southeast-2.amazonaws.com/default/org_voyex_api"
+      const res = await fetch(
+        `https://xklp1j7zp3.execute-api.ap-southeast-2.amazonaws.com/default/voyex_tool_workspace?entity_type=organization&entity_id=${orgId}`
       );
 
-      const transformed = res.data.map((org) => ({
-        id: org.id,
-        image: org.logo_url ?? "/people.svg",
-        organization: org.organization_name ?? "-",
-        email: org.organization_email ?? "-",
-        status: getRandomStatus(),
-        industry: org.industry || "-",
-        plan: "Premium+", // Default plan
-      }));
-      console.log("Fetched data:", res.data);
+      const data = await res.json();
 
+
+      // Defensive check
+      if (!data?.tools) {
+        throw new Error("Tools data missing from response");
+      }
+
+      const transformed = data.tools.map((org) => ({
+        id: org?.tool_id ?? "-", // safe access
+        image: org.logo_url ?? "/Avatar.svg",
+        productname: org.product_name ?? "-", // match your `accessorKey`
+        category: org.primary_category ?? "-",
+        pricing: org.pricing_model ?? "-",
+        approved: org.created_at?.split('T')[0] ?? "-",
+      }));
 
       setData(transformed);
-      sessionStorage.setItem("orgData", JSON.stringify(transformed));
+      sessionStorage.setItem("productData", JSON.stringify(transformed));
     } catch (err) {
-      console.error("Failed to fetch organizations", err);
-      setError("Failed to load organizations. Please try again.");
+      console.error("Failed to fetch Products", err);
+      setError("Failed to load Products. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   fetchData();
-}, []);
-
-
+}, [orgId]);
 
   const table = useReactTable({
     data,
@@ -276,12 +274,12 @@ useEffect(() => {
     <Card className="text-dovegray border-0 bg-secondary w-full ">
       <CardContent className="mt-4 p-0">
         {loading ? (
-          <div className="h-screen flex flex-col items-center justify-center text-lg font-medium">
+          <div className="h-full flex flex-col gap-2 items-center justify-center text-lg font-medium">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-700"></div>
-            Loading organizations...
+            Loading Products...
           </div>
         ) : error ? (
-          <div className="h-screen flex flex-col items-center justify-center text-center text-red-500">
+          <div className="h-72 flex flex-col items-center justify-center text-center text-red-500">
             <p>{error}</p>
             <Button onClick={() => window.location.reload()} className="mt-4">
               Retry
@@ -292,11 +290,11 @@ useEffect(() => {
             <div className="flex items-center py-4">
               <div className="max-w-[349px] w-full">
                 <Input
-                  placeholder="Search Organizations"
-                  value={table.getColumn("organization")?.getFilterValue() ?? ""}
+                  placeholder="Search Product"
+                  value={table.getColumn("productname")?.getFilterValue() ?? ""}
                   onChange={(event) =>
                     table
-                      .getColumn("organization")
+                      .getColumn("productname")
                       ?.setFilterValue(event.target.value)
                   }
                   className="w-full bg-transparent outline-none rounded-[10px] bg-white border-[#D0D5DD]"
@@ -377,16 +375,16 @@ useEffect(() => {
                       >
                         <div className="flex flex-col items-center">
                           <Image
-                            src="/NoneFoundOrg.png"
+                            src="/NoProductFound.svg"
                             alt="empty"
                             width={105}
                             height={105}
                           />
                           <h3 className="text-[#1F1F1F] text-xl font-medium mt-3">
-                            Nothing to Show here
+                            No Products Listed by this Organization
                           </h3>
                           <span className="text-[#808080] tracking-normal text-base font-medium product-sans">
-                            Organizations: No results.
+                            This Organization has no Products listed
                           </span>
                         </div>
                       </TableCell>
@@ -503,4 +501,4 @@ useEffect(() => {
   );
 }
 
-export default AllOrganizaztionTable;
+export default Products;

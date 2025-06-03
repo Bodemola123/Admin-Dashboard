@@ -98,13 +98,13 @@ export const columns = [
   //   enableHiding: false,
   // },
   {
-    accessorKey: "organization",
+    accessorKey: "products",
     header: ({ column }) => (
       <button
         className="flex items-center gap-2 hover:text-btnlime"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Organizations
+        Products
         <ArrowUpDown className="h-4 w-4" />
       </button>
     ),
@@ -112,7 +112,7 @@ export const columns = [
       <div className="flex items-center justify-start gap-2 text-btnlime text-center text-sm font-medium">
         <Image
         // src={row.original.image || "/people.svg"}
-          src= "/people.svg"
+          src= "/Product.svg"
           alt="logo"
           width={40}
           height={40}
@@ -120,7 +120,7 @@ export const columns = [
         />
         <div className="text-left">
           <h3 className="text-[#2D2D2D] text-sm font-semibold product-sans capitalize">
-            {row.getValue("organization")}
+            {row.getValue("products")}
           </h3>
           <span className="text-dovegray text-sm font-normal">
             {row.original.email}
@@ -130,29 +130,12 @@ export const columns = [
     ),
   },
   {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <div className="flex items-center justify-start">
-        <div
-          className={`capitalize py-[2px] px-2 rounded-2xl ${
-            row.getValue("status") === "active" && "text-[#027A48] bg-[#ECFDF3]"
-          } ${
-            row.getValue("status") === "inactive" && "text-[#344054] bg-[#F2F4F7]"
-          }`}
-        >
-          {row.getValue("status")}
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "industry",
-    header: "Industry",
+    accessorKey: "category",
+    header: "Category",
     cell: ({ row }) => (
       <div className="flex items-center justify-start">
         <div className="capitalize py-[2px] px-2 rounded-2xl text-[#430099] bg-[#F2F4F7]">
-          {row.getValue("industry")}
+          {row.getValue("category")}
         </div>
       </div>
     ),
@@ -168,12 +151,23 @@ export const columns = [
       </div>
     ),
   },
+    {
+    accessorKey: "rating",
+    header: "Rating",
+    cell: ({ row }) => (
+      <div className="flex items-center justify-start">
+        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#032400] bg-[#ECFDF3]">
+          {row.getValue("rating")}
+        </div>
+      </div>
+    ),
+  },
 {
   id: "actions",
   enableHiding: false,
   cell: ({ row }) => {
-    const org = row.original; // Full row object with all fields
-    const slug = `${org.id}-${slugify(org.email)}`; // or organization_email
+    // const org = row.original; // Full row object with all fields
+    // const slug = `${org.id}-${slugify(org.email)}`; // or organization_email
 
     return (
       <DropdownMenu>
@@ -186,10 +180,7 @@ export const columns = [
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <Link href={`/orgDetails/${slug}`}>
             <DropdownMenuItem>View info</DropdownMenuItem>
-          </Link>
-          {/* <DropdownMenuItem>Select account</DropdownMenuItem> */}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -197,7 +188,7 @@ export const columns = [
 },
 ];
 
-function AllOrganizaztionTable() {
+function AllProductsTable() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -214,35 +205,38 @@ useEffect(() => {
 
     try {
       // Check if data is already in sessionStorage
-      const cachedData = sessionStorage.getItem("orgData");
+      const cachedData = sessionStorage.getItem("ProductData");
       if (cachedData) {
         setData(JSON.parse(cachedData));
         setLoading(false);
         return;
       }
 
-      // Otherwise, fetch from API
       const res = await axios.get(
-        "https://p2xeehk5x9.execute-api.ap-southeast-2.amazonaws.com/default/org_voyex_api"
+        "https://2zztcz7h0a.execute-api.ap-southeast-2.amazonaws.com/default/voyex_tools_api"
       );
 
-      const transformed = res.data.map((org) => ({
-        id: org.id,
-        image: org.logo_url ?? "/people.svg",
-        organization: org.organization_name ?? "-",
-        email: org.organization_email ?? "-",
-        status: getRandomStatus(),
-        industry: org.industry || "-",
-        plan: "Premium+", // Default plan
-      }));
-      console.log("Fetched data:", res.data);
+      const allCategories = res.data.data;
 
+      // Flatten all tools from all categories into one array
+      const allTools = Object.values(allCategories).flat();
+
+      const transformed = allTools.map((org) => ({
+        id: org.tool_id,
+        products: org.tool_name ?? "-",
+        email: org.tool_url ?? "-",
+        rating: org.rating,
+        category: org.category,
+        plan: org.pricing_model,
+      }));
+
+      console.log("Transformed data:", transformed);
 
       setData(transformed);
-      sessionStorage.setItem("orgData", JSON.stringify(transformed));
+      sessionStorage.setItem("ProductData", JSON.stringify(transformed)); // Also fixed the key name
     } catch (err) {
-      console.error("Failed to fetch organizations", err);
-      setError("Failed to load organizations. Please try again.");
+      console.error("Failed to fetch Products", err);
+      setError("Failed to load Products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -276,9 +270,9 @@ useEffect(() => {
     <Card className="text-dovegray border-0 bg-secondary w-full ">
       <CardContent className="mt-4 p-0">
         {loading ? (
-          <div className="h-screen flex flex-col items-center justify-center text-lg font-medium">
+          <div className="h-screen flex flex-col gap-2 items-center justify-center text-lg font-medium">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-700"></div>
-            Loading organizations...
+            Loading Products...
           </div>
         ) : error ? (
           <div className="h-screen flex flex-col items-center justify-center text-center text-red-500">
@@ -292,11 +286,11 @@ useEffect(() => {
             <div className="flex items-center py-4">
               <div className="max-w-[349px] w-full">
                 <Input
-                  placeholder="Search Organizations"
-                  value={table.getColumn("organization")?.getFilterValue() ?? ""}
+                  placeholder="Search Products"
+                  value={table.getColumn("products")?.getFilterValue() ?? ""}
                   onChange={(event) =>
                     table
-                      .getColumn("organization")
+                      .getColumn("products")
                       ?.setFilterValue(event.target.value)
                   }
                   className="w-full bg-transparent outline-none rounded-[10px] bg-white border-[#D0D5DD]"
@@ -386,7 +380,7 @@ useEffect(() => {
                             Nothing to Show here
                           </h3>
                           <span className="text-[#808080] tracking-normal text-base font-medium product-sans">
-                            Organizations: No results.
+                            Products: No results.
                           </span>
                         </div>
                       </TableCell>
@@ -503,4 +497,4 @@ useEffect(() => {
   );
 }
 
-export default AllOrganizaztionTable;
+export default AllProductsTable;

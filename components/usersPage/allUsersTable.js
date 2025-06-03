@@ -11,9 +11,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   ArrowUpDown,
@@ -42,35 +39,64 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { allUsersData } from "@/constant/users";
-import { useState } from "react";
+// import { allUsersData } from "@/constant/users";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import Image from "next/image";
+import Link from "next/link";
+import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
+
+const getRandomStatus = () => (Math.random() < 0.5 ? "active" : "inactive");
+
+function getTruncatedPageNumbers(current, total) {
+  const delta = 1;
+  const range = [];
+  const left = current - delta;
+  const right = current + delta;
+
+  for (let i = 0; i < total; i++) {
+    if (i === 0 || i === total - 1 || (i >= left && i <= right)) {
+      range.push(i);
+    } else if (
+      (i === left - 1 && left > 1) ||
+      (i === right + 1 && right < total - 2)
+    ) {
+      range.push("...");
+    }
+  }
+
+  return range.filter((v, i, a) => a[i - 1] !== v); // Remove duplicate ellipses
+}
+
+
+const slugify = (str) =>
+  str?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
 export const columns = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="border-btnlime"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="border-btnlime"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  // {
+  //   id: "select",
+  //   header: ({ table }) => (
+  //     <Checkbox
+  //       checked={
+  //         table.getIsAllPageRowsSelected() ||
+  //         (table.getIsSomePageRowsSelected() && "indeterminate")
+  //       }
+  //       onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+  //       aria-label="Select all"
+  //       className="border-btnlime"
+  //     />
+  //   ),
+  //   cell: ({ row }) => (
+  //     <Checkbox
+  //       checked={row.getIsSelected()}
+  //       onCheckedChange={(value) => row.toggleSelected(!!value)}
+  //       aria-label="Select row"
+  //       className="border-btnlime"
+  //     />
+  //   ),
+  //   enableSorting: false,
+  //   enableHiding: false,
+  // },
   {
     accessorKey: "user",
     header: ({ column }) => {
@@ -86,13 +112,13 @@ export const columns = [
     },
     cell: ({ row }) => (
       <div className="flex items-center justify-start gap-2 text-btnlime text-center text-sm font-medium">
-        <Image src="/avatar.png" alt="user" width={40} height={40} />
+        <Image src="/Avatar.svg" alt="user" width={40} height={40} />
         <div className="text-left">
           <h3 className="text-[#2D2D2D] text-sm font-semibold product-sans capitalize">
             {row.getValue("user")}
           </h3>
           <span className="text-dovegray text-sm font-normal">
-            exampleemail@gmail.com
+            {row.original.email}
             {/* {row.getValue("email")} */}
           </span>
         </div>
@@ -118,20 +144,12 @@ export const columns = [
     ),
   },
   {
-    accessorKey: "role",
-    header: "Role",
+    accessorKey: "skill",
+    header: "Skill Level",
     cell: ({ row }) => (
       <div className="flex items-center justify-start">
-        <div
-          className={`capitalize py-[2px] px-2 rounded-2xl ${
-            row.getValue("role") === "developer" &&
-            "text-[#4255FF] bg-[#ECFDF3]"
-          } ${
-            row.getValue("role") === "organization" &&
-            "text-[#430099] bg-[#F2F4F7]"
-          } ${row.getValue("role") === "-" && "text-[#027A48] bg-[#ECFDF3]"}`}
-        >
-          {row.getValue("role")}
+        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#430099] bg-[#F2F4F7]">
+          {row.getValue("skill")}
         </div>
       </div>
     ),
@@ -141,14 +159,7 @@ export const columns = [
     header: "Plan",
     cell: ({ row }) => (
       <div className="flex items-center justify-start">
-        <div
-          className={`capitalize py-[2px] px-2 rounded-2xl ${
-            row.getValue("plan") === "premium" && "text-[#46BA3C] bg-[#ECFDF3]"
-          } ${
-            row.getValue("plan") === "premium+" &&
-            "text-[#46BA3C] bg-[#84DE7C59]"
-          } ${row.getValue("plan") === "-" && "text-[#027A48] bg-[#ECFDF3]"}`}
-        >
+        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#027A48] bg-[#ECFDF3]">
           {row.getValue("plan")}
         </div>
       </div>
@@ -158,7 +169,8 @@ export const columns = [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const payment = row.original;
+    const user = row.original; // Full row object with all fields
+    const slug = `${user.id}-${slugify(user.email)}`; // or organization_email
 
       return (
         <DropdownMenu>
@@ -170,19 +182,15 @@ export const columns = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            {/* <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
-            >
-              Copy payment ID
-            </DropdownMenuItem> */}
+
             <DropdownMenuSeparator />
+          <Link href={`/userDetails/${slug}`}>
             <DropdownMenuItem>View info</DropdownMenuItem>
-            <DropdownMenuItem
-            // onClick={() => row.getIsSelected()}
-            // onCheckedChange={(value) => row.toggleSelected(!!value)}
+          </Link>
+            {/* <DropdownMenuItem
             >
               Select account
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -191,11 +199,58 @@ export const columns = [
 ];
 
 function AllUsersTable() {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [rowSelection, setRowSelection] = useState({});
-  const data = allUsersData;
+  // const data = allUsersData;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+  
+      try {
+        // Check if data is already in sessionStorage
+        const cachedData = sessionStorage.getItem("userData");
+        if (cachedData) {
+          setData(JSON.parse(cachedData));
+          setLoading(false);
+          return;
+        }
+  
+        // Otherwise, fetch from API
+        const res = await axios.get(
+          "https://cqceokwaza.execute-api.eu-north-1.amazonaws.com/default/users_voyex_api"
+        );
+  
+        const transformed = res.data.map((user) => ({
+          id: user.user_id,
+          user: user.fullname ?? "-",
+          email: user.email ?? "-",
+          status: getRandomStatus(),
+          skill: user.skill_level || "-",
+          plan: "Premium+", // Default plan
+        }));
+        console.log("Fetched data:", res.data);
+  
+  
+        setData(transformed);
+        sessionStorage.setItem("userData", JSON.stringify(transformed));
+      } catch (err) {
+        console.error("Failed to fetch users", err);
+        setError("Failed to load organizations. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchData();
+  }, []);
+  
 
   const table = useReactTable({
     //note: {data} is a constant variable name. it shouldn't be changed when getting external api. instead make api name also {data}
@@ -220,7 +275,20 @@ function AllUsersTable() {
   return (
     <Card className="text-dovegray border-0 bg-secondary">
       <CardContent className="mt-4 p-0">
-        <div className="w-full">
+        {loading ? (
+          <div className="h-screen flex flex-col gap-2 items-center justify-center text-lg font-medium">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-700"></div>
+            Loading users...
+          </div>
+        ) : error ? (
+          <div className="h-screen flex flex-col items-center justify-center text-center text-red-500">
+            <p>{error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full">
           <div className="flex items-center py-4">
             <div className="max-w-[349px] w-full">
               <Input
@@ -329,34 +397,110 @@ function AllUsersTable() {
                 )}
               </TableBody>
             </Table>
-          </div>
-          <div className="flex items-center justify-end space-x-2 py-4">
-            <div className="flex-1 text-sm text-muted-foreground">
-              {table.getFilteredSelectedRowModel().rows.length} of{" "}
-              {table.getFilteredRowModel().rows.length} row(s) selected.
             </div>
-            <div className="space-x-2">
-              <Button
-                // variant="outline"
-                className="text-fontlight bg-btnlime border-none"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                Previous
-              </Button>
-              <Button
-                // variant="outline"
-                className="text-fontlight bg-btnlime border-none"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                Next
-              </Button>
-            </div>
+<div className="flex items-center justify-between py-4 w-full">
+  {/* Show Rows per page */}
+<div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+  Show
+  <div className="relative">
+    <select
+      className="appearance-none border border-[#F0F9EB] bg-white rounded-[25px] pl-3 pr-8 py-1.5 text-base text-[#333] cursor-pointer focus:outline-none"
+      value={table.getState().pagination.pageSize}
+      onChange={(e) => {
+        table.setPageSize(Number(e.target.value));
+      }}
+    >
+      {[10, 20, 30, 40, 50].map((size) => (
+        <option key={size} value={size}>
+          {size}
+        </option>
+      ))}
+    </select>
+    {/* Custom Arrow Icon */}
+    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#A5A5A5]">
+      <svg
+        className="h-5 w-5"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+      >
+        <path d="M10 12l-4-4h8l-4 4z" />
+      </svg>
+    </div>
+  </div>
+  Rows per page
+</div>
+
+
+  {/* Pagination Controls */}
+  <div className="space-x-4 flex items-center justify-center">
+    {/* Prev Button */}
+    <div className="flex items-center gap-2.5">
+      <Button
+        className="rounded-[25px] bg-[#FFFFFF] border-[0.9px] border-[#F0F9EB] p-[6px] hover:bg-[#ffffff]"
+        size="sm"
+        onClick={() => table.previousPage()}
+        disabled={!table.getCanPreviousPage()}
+      >
+        <FaAngleLeft className="text-[8.5px] text-[#A5A5A5]" />
+      </Button>
+      <p className="text-fontlight">Prev</p>
+    </div>
+
+    {/* Page Numbers */}
+<div className="flex flex-row px-4 py-2.5 gap-2.5 rounded-[25px] bg-[#ffffff] border-[0.9px] border-[#F0F9EB]">
+  {table.getPageCount() > 0 &&
+    getTruncatedPageNumbers(
+      table.getState().pagination.pageIndex,
+      table.getPageCount()
+    ).map((page, idx) => {
+      if (page === "...") {
+        return (
+          <span
+            key={`ellipsis-${idx}`}
+            className="text-[#A5A5A5] text-base font-semibold"
+          >
+            ...
+          </span>
+        );
+      }
+
+      const isActive = page === table.getState().pagination.pageIndex;
+
+      return (
+        <button
+          key={page}
+          onClick={() => table.setPageIndex(Number(page))}
+          className={`px-1.5 py-1 flex items-center justify-center rounded-[20px] text-base font-normal ${
+            isActive
+              ? "bg-[#46BA3C] text-[#F5F5F5]"
+              : "text-[#A5A5A5] hover:bg-[#f0f0f0]"
+          }`}
+        >
+          {Number(page) + 1}
+        </button>
+      );
+    })}
+</div>
+
+
+    {/* Next Button */}
+    <div className="flex flex-row-reverse items-center gap-2.5">
+      <Button
+        className="text-[#a5a5a5] rounded-[25px] bg-[#FFFFFF] border-[0.9px] border-[#F0F9EB] p-[6px] hover:bg-[#ffffff]"
+        size="sm"
+        onClick={() => table.nextPage()}
+        disabled={!table.getCanNextPage()}
+      >
+        <FaAngleRight className="text-[8.5px]" />
+      </Button>
+      <p className="text-fontlight">Next</p>
+    </div>
+  </div>
+</div>
+
+
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

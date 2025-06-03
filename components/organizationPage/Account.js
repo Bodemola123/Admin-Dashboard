@@ -46,8 +46,8 @@ import Image from "next/image";
 import axios from "axios";
 import { FaAngleLeft, FaAngleRight, FaChevronLeft } from "react-icons/fa";
 import Link from "next/link";
+import { toast } from "react-toastify";
 
-const getRandomStatus = () => (Math.random() < 0.5 ? "active" : "inactive");
 
 function getTruncatedPageNumbers(current, total) {
   const delta = 1;
@@ -70,8 +70,8 @@ function getTruncatedPageNumbers(current, total) {
 }
 
 
-const slugify = (str) =>
-  str?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+// const slugify = (str) =>
+//   str?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 export const columns = [
   // {
   //   id: "select",
@@ -98,72 +98,55 @@ export const columns = [
   //   enableHiding: false,
   // },
   {
-    accessorKey: "organization",
+    accessorKey: "email",
+    id: "email",
     header: ({ column }) => (
       <button
         className="flex items-center gap-2 hover:text-btnlime"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Organizations
+        Email
         <ArrowUpDown className="h-4 w-4" />
       </button>
     ),
     cell: ({ row }) => (
       <div className="flex items-center justify-start gap-2 text-btnlime text-center text-sm font-medium">
         <Image
-        // src={row.original.image || "/people.svg"}
-          src= "/people.svg"
-          alt="logo"
+          src="/Avatar.svg"
+          alt="avatar"
           width={40}
           height={40}
-          className="object-cover"
+          className="object-cover rounded-full"
         />
         <div className="text-left">
-          <h3 className="text-[#2D2D2D] text-sm font-semibold product-sans capitalize">
-            {row.getValue("organization")}
+          <h3 className="text-[#2D2D2D] text-sm font-semibold product-sans">
+            {row.getValue("email")}
           </h3>
           <span className="text-dovegray text-sm font-normal">
-            {row.original.email}
+            ID: {row.original.id}
           </span>
         </div>
       </div>
     ),
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "role",
+    header: "Role",
     cell: ({ row }) => (
       <div className="flex items-center justify-start">
-        <div
-          className={`capitalize py-[2px] px-2 rounded-2xl ${
-            row.getValue("status") === "active" && "text-[#027A48] bg-[#ECFDF3]"
-          } ${
-            row.getValue("status") === "inactive" && "text-[#344054] bg-[#F2F4F7]"
-          }`}
-        >
-          {row.getValue("status")}
+        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#344054] bg-[#F2F4F7]">
+          {row.getValue("role")}
         </div>
       </div>
     ),
   },
   {
-    accessorKey: "industry",
-    header: "Industry",
-    cell: ({ row }) => (
-      <div className="flex items-center justify-start">
-        <div className="capitalize py-[2px] px-2 rounded-2xl text-[#430099] bg-[#F2F4F7]">
-          {row.getValue("industry")}
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "plan",
-    header: "Plan",
+    accessorKey: "access",
+    header: "Access Level",
     cell: ({ row }) => (
       <div className="flex items-center justify-start">
         <div className="capitalize py-[2px] px-2 rounded-2xl text-[#027A48] bg-[#ECFDF3]">
-          {row.getValue("plan")}
+          {row.getValue("access")}
         </div>
       </div>
     ),
@@ -172,8 +155,32 @@ export const columns = [
   id: "actions",
   enableHiding: false,
   cell: ({ row }) => {
-    const org = row.original; // Full row object with all fields
-    const slug = `${org.id}-${slugify(org.email)}`; // or organization_email
+    const memberId = row.original.id;
+
+    const handleDelete = async () => {
+      const confirmDelete = window.confirm(
+        "Are you sure you want to delete this member?"
+      );
+      if (!confirmDelete) return;
+
+      try {
+        const res = await fetch(
+          `https://f3y0bxd77g.execute-api.ap-southeast-2.amazonaws.com/default/voyex_role_based_access?member_id=${memberId}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to delete member");
+        }
+        toast.success("Member deleted successfully")
+        await fetchData(); // ✅ Refresh the list after successful deletion
+      } catch (error) {
+        console.error("Error deleting member:", error);
+        toast.error("Failed to delete member. Please try again.");
+      }
+    };
 
     return (
       <DropdownMenu>
@@ -186,18 +193,19 @@ export const columns = [
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <Link href={`/orgDetails/${slug}`}>
-            <DropdownMenuItem>View info</DropdownMenuItem>
-          </Link>
-          {/* <DropdownMenuItem>Select account</DropdownMenuItem> */}
+          <DropdownMenuItem onClick={handleDelete}>
+            Delete Member
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
-  }
+  },
 },
 ];
 
-function AllOrganizaztionTable() {
+function Account({orgData}) {
+  const orgId = orgData?.id 
+  console.log("orgId is", orgId)
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -207,49 +215,53 @@ function AllOrganizaztionTable() {
   const [columnVisibility, setColumnVisibility] = useState({});
   const [rowSelection, setRowSelection] = useState({});
 
-useEffect(() => {
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
+const fetchData = async () => {
+  setLoading(true);
+  setError(null);
 
-    try {
-      // Check if data is already in sessionStorage
-      const cachedData = sessionStorage.getItem("orgData");
-      if (cachedData) {
-        setData(JSON.parse(cachedData));
-        setLoading(false);
-        return;
-      }
+  try {
+    sessionStorage.removeItem("memberData");
 
-      // Otherwise, fetch from API
-      const res = await axios.get(
-        "https://p2xeehk5x9.execute-api.ap-southeast-2.amazonaws.com/default/org_voyex_api"
-      );
+    const res = await fetch(
+      `https://f3y0bxd77g.execute-api.ap-southeast-2.amazonaws.com/default/voyex_role_based_access?org_id=${orgId}`
+    );
+    const data = await res.json();
 
-      const transformed = res.data.map((org) => ({
-        id: org.id,
-        image: org.logo_url ?? "/people.svg",
-        organization: org.organization_name ?? "-",
-        email: org.organization_email ?? "-",
-        status: getRandomStatus(),
-        industry: org.industry || "-",
-        plan: "Premium+", // Default plan
-      }));
-      console.log("Fetched data:", res.data);
-
-
-      setData(transformed);
-      sessionStorage.setItem("orgData", JSON.stringify(transformed));
-    } catch (err) {
-      console.error("Failed to fetch organizations", err);
-      setError("Failed to load organizations. Please try again.");
-    } finally {
-      setLoading(false);
+    if (data?.error === "No members found") {
+      setData([]);
+      sessionStorage.setItem("memberData", JSON.stringify([]));
+      return;
     }
-  };
 
+    if (!data?.members || !Array.isArray(data.members)) {
+      throw new Error("Members data missing or malformed");
+    }
+
+    const transformed = data.members.map((member) => {
+      const [member_id, org_id, email, role, access_level] = member;
+      return {
+        id: member_id ?? "-",
+        email: email ?? "-",
+        role: role ?? "-",
+        access: access_level ?? "-",
+        orgId: org_id ?? "-",
+      };
+    });
+
+    setData(transformed);
+    sessionStorage.setItem("memberData", JSON.stringify(transformed));
+  } catch (err) {
+    console.error("Failed to fetch members", err);
+    setError("Failed to load members. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (!orgId) return;
   fetchData();
-}, []);
+}, [orgId]);
 
 
 
@@ -276,12 +288,12 @@ useEffect(() => {
     <Card className="text-dovegray border-0 bg-secondary w-full ">
       <CardContent className="mt-4 p-0">
         {loading ? (
-          <div className="h-screen flex flex-col items-center justify-center text-lg font-medium">
+          <div className="h-full flex flex-col gap-2 items-center justify-center text-lg font-medium">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-700"></div>
-            Loading organizations...
+            Loading members...
           </div>
         ) : error ? (
-          <div className="h-screen flex flex-col items-center justify-center text-center text-red-500">
+          <div className="h-72 flex flex-col items-center justify-center text-center text-red-500">
             <p>{error}</p>
             <Button onClick={() => window.location.reload()} className="mt-4">
               Retry
@@ -292,11 +304,11 @@ useEffect(() => {
             <div className="flex items-center py-4">
               <div className="max-w-[349px] w-full">
                 <Input
-                  placeholder="Search Organizations"
-                  value={table.getColumn("organization")?.getFilterValue() ?? ""}
+                  placeholder="Search Member"
+                  value={table.getColumn("email")?.getFilterValue() ?? ""}
                   onChange={(event) =>
                     table
-                      .getColumn("organization")
+                      .getColumn("email")
                       ?.setFilterValue(event.target.value)
                   }
                   className="w-full bg-transparent outline-none rounded-[10px] bg-white border-[#D0D5DD]"
@@ -377,16 +389,16 @@ useEffect(() => {
                       >
                         <div className="flex flex-col items-center">
                           <Image
-                            src="/NoneFoundOrg.png"
+                            src="/NoneFoundOrg.svg"
                             alt="empty"
                             width={105}
                             height={105}
                           />
                           <h3 className="text-[#1F1F1F] text-xl font-medium mt-3">
-                            Nothing to Show here
+                            No member associated with this organization
                           </h3>
                           <span className="text-[#808080] tracking-normal text-base font-medium product-sans">
-                            Organizations: No results.
+                            This Organization has no members
                           </span>
                         </div>
                       </TableCell>
@@ -503,4 +515,4 @@ useEffect(() => {
   );
 }
 
-export default AllOrganizaztionTable;
+export default Account;
