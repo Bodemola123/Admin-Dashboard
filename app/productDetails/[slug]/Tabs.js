@@ -1,12 +1,13 @@
 'use client'
 import React, { useState } from 'react';
-import {  FaClock, FaCode } from 'react-icons/fa';
+import {  FaBookOpen, FaClock, FaCode } from 'react-icons/fa';
 import { AiFillProduct } from "react-icons/ai";
 import Basicinfo from '@/components/productsPage/Basicinfo';
 import { PiBookOpenText } from 'react-icons/pi';
 import { BsTags } from 'react-icons/bs';
 import About from '@/components/productsPage/About';
 import PlansAndFeatures from '@/components/productsPage/PlansAndFeatures';
+import { FaTags } from 'react-icons/fa6';
 
 const Tabs = ({productData}) => {
   const capitalizedTitle = productData?.tool_name?.charAt(0).toUpperCase() + productData?.tool_name?.slice(1);
@@ -15,8 +16,8 @@ const [activeTab, setActiveTab] = useState('Basic info');
 
 const tabs = [
   { name: 'Basic info', icon: <AiFillProduct /> },
-  { name: `About ${capitalizedTitle}`, icon: <PiBookOpenText /> },
-  { name: 'Plans and features', icon: <BsTags /> },
+  { name: `About ${capitalizedTitle}`, icon: <FaBookOpen /> },
+  { name: 'Plans and features', icon: <FaTags /> },
   { name: 'From the Developer', icon: <FaCode /> },
 ];
 
