@@ -166,8 +166,8 @@ export const columns = [
   id: "actions",
   enableHiding: false,
   cell: ({ row }) => {
-    // const org = row.original; // Full row object with all fields
-    // const slug = `${org.id}-${slugify(org.email)}`; // or organization_email
+    const org = row.original; // Full row object with all fields
+    const slug = `${org.id}-${slugify(org.products)}`; // or organization_email
 
     return (
       <DropdownMenu>
@@ -180,7 +180,9 @@ export const columns = [
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <Link href={`/productDetails/${slug}`}>
             <DropdownMenuItem>View info</DropdownMenuItem>
+          </Link>
         </DropdownMenuContent>
       </DropdownMenu>
     );

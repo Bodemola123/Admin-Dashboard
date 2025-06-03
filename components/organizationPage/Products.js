@@ -69,8 +69,8 @@ function getTruncatedPageNumbers(current, total) {
 }
 
 
-// const slugify = (str) =>
-//   str?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+const slugify = (str) =>
+  str?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 export const columns = [
   // {
   //   id: "select",
@@ -168,7 +168,7 @@ export const columns = [
   enableHiding: false,
   cell: ({ row }) => {
     const org = row.original; // Full row object with all fields
-    // const slug = `${org.id}-${slugify(org.email)}`; // or organization_email
+    const slug = `${org.id}-${slugify(org.productname)}`; // or organization_email
 
     return (
       <DropdownMenu>
@@ -181,8 +181,9 @@ export const columns = [
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-            <DropdownMenuItem>View Product info</DropdownMenuItem>
-          <DropdownMenuItem>Give Admin rating</DropdownMenuItem>
+          <Link href={`/productDetails/${slug}`}>
+            <DropdownMenuItem>View info</DropdownMenuItem>
+          </Link>
         </DropdownMenuContent>
       </DropdownMenu>
     );
