@@ -5,7 +5,7 @@ import { RiSearchLine } from "react-icons/ri";
 function Header() {
   return (
     <header className="flex items-center justify-between mb-12">
-      <h1 className="text-xl text-[#A5A5A5] font-normal uppercase tracking-[0.3em]">
+      <h1 className="text-xl text-[#A5A5A5] font-bold uppercase tracking-[0.3em]">
         dashboard
       </h1>
       <div className="flex items-center gap-[1.8rem] product-sans">
